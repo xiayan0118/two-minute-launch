@@ -1,0 +1,7 @@
+name = "screentime-reward"
+main = "worker.js"
+compatibility_date = "2026-06-17"
+
+# Secrets are NOT stored here. Set them once with:
+#   wrangler secret put UPSTASH_REDIS_REST_URL
+#   wrangler secret put UPSTASH_REDIS_REST_TOKEN

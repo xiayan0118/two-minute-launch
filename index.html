@@ -75,6 +75,7 @@
   .timer{font-size:92px;font-weight:800;color:#e8eef7;font-variant-numeric:tabular-nums;line-height:1;}
   .done-emoji{font-size:60px;margin-bottom:14px;}
   .done-title{font-size:26px;font-weight:800;color:#7CFC8A;margin-bottom:10px;}
+  .reward{font-size:18px;font-weight:700;color:#ffb347;margin-bottom:14px;line-height:1.45;}
 </style>
 </head>
 <body>
@@ -124,6 +125,7 @@
   <div id="done" class="hidden">
     <div class="done-emoji">✅</div>
     <div class="done-title">You started.</div>
+    <div id="reward" class="reward"></div>
     <div class="hint">That was the whole win. Ride the momentum, or launch the next one.</div>
     <button onclick="reset()" style="margin-top:22px;">LAUNCH AGAIN</button>
   </div>
@@ -144,6 +146,14 @@
   const cv=$('cv'),ctx=cv.getContext('2d');
   let W,H,dpr,particles=[],raf=null,phase='off',flyStart=0,taskText='',timerIv=null,audioCtx;
   const FLY_MS=1400;
+
+  // === Screen-time reward ===
+  // URL of your Cloudflare Worker that runs `INCRBY screentime_balance 5` and
+  // returns { "balance": <new total> }. The Upstash token lives ONLY in the
+  // Worker secret — NEVER in this file (the repo is public). Leave '' until the
+  // Worker is deployed; then paste its https://...workers.dev URL here.
+  const REWARD_ENDPOINT='https://winter-bread-eb31.xiayan0118.workers.dev';
+  const REWARD_AMOUNT=5;
 
   function fit(){dpr=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
   fit();addEventListener('resize',fit);
@@ -258,8 +268,23 @@
       left--;
       const m=Math.floor(left/60),s=String(Math.max(left,0)%60).padStart(2,'0');
       $('timer').textContent=m+':'+s;
-      if(left<=0){clearInterval(timerIv);tone(660,0.5,'sine',0.06);show('done');}
+      if(left<=0){clearInterval(timerIv);tone(660,0.5,'sine',0.06);show('done');grantReward();}
     },1000);
+  }
+
+  async function grantReward(){
+    const el=$('reward');
+    if(!REWARD_ENDPOINT){el.textContent='';return;}            // Worker not wired up yet
+    el.textContent='Banking +'+REWARD_AMOUNT+' min…';
+    try{
+      const res=await fetch(REWARD_ENDPOINT,{method:'POST'});
+      if(!res.ok)throw 0;
+      const data=await res.json();                             // { balance: <new total> }
+      const after=Number(data.balance),before=after-REWARD_AMOUNT;
+      el.innerHTML='🎉 +'+REWARD_AMOUNT+' min screen time<br><b>'+before+' → '+after+'</b> min banked';
+    }catch(e){
+      el.textContent='+'+REWARD_AMOUNT+' min earned — couldn’t reach the counter (offline?)';
+    }
   }
 
   function reset(){
@@ -268,6 +293,7 @@
     $('countOverlay').style.display='';
     $('flame').classList.remove('big');
     $('task').value='';
+    $('reward').textContent='';
     show('setup');
   }
 </script>

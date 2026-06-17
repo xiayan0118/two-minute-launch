@@ -275,15 +275,17 @@
   async function grantReward(){
     const el=$('reward');
     if(!REWARD_ENDPOINT){el.textContent='';return;}            // Worker not wired up yet
-    el.textContent='Banking +'+REWARD_AMOUNT+' min…';
+    el.textContent='Saving your reward…';
     try{
       const res=await fetch(REWARD_ENDPOINT,{method:'POST'});
       if(!res.ok)throw 0;
-      const data=await res.json();                             // { balance: <new total> }
-      const after=Number(data.balance),before=after-REWARD_AMOUNT;
+      const data=await res.json();
+      const after=Number(data.balance);
+      if(!Number.isFinite(after))throw 0;                      // only celebrate a real, confirmed increment
+      const before=after-REWARD_AMOUNT;
       el.innerHTML='🎉 +'+REWARD_AMOUNT+' min screen time<br><b>'+before+' → '+after+'</b> min banked';
     }catch(e){
-      el.textContent='+'+REWARD_AMOUNT+' min earned — couldn’t reach the counter (offline?)';
+      el.textContent='Couldn’t save your reward this time — try again later.';
     }
   }
 
